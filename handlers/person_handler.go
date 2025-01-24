@@ -5,59 +5,78 @@ import (
     "go-modul/models"
     "net/http"
     "strings"
-	"gorm.io/gorm"
+
     "github.com/gin-gonic/gin"
+    "gorm.io/gorm"
 )
+
+// Middleware to check role permissions
+func RoleMiddleware(requiredRole string) gin.HandlerFunc {
+    return func(c *gin.Context) {
+        userRole, exists := c.Get("role") // Assume role is stored in context
+        if !exists || (requiredRole != "any" && userRole != requiredRole) {
+            c.JSON(http.StatusForbidden, gin.H{"error": "You do not have permission to perform this action"})
+            c.Abort()
+            return
+        }
+        c.Next()
+    }
+}
 
 func GetPeople(c *gin.Context) {
     var people []models.Person
     if err := database.DB.Find(&people).Error; err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Gagal mengambil data"})
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to retrieve data"})
         return
     }
     c.JSON(http.StatusOK, people)
 }
 
-
 func GetPersonByID(c *gin.Context) {
-	id := c.Param("id")
-	var person models.Person
-	if err := database.DB.First(&person, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
-		return
-	}
-	c.JSON(http.StatusOK, person)
+    id := c.Param("id")
+    var person models.Person
+    if err := database.DB.First(&person, id).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
+        return
+    }
+    c.JSON(http.StatusOK, person)
 }
 
 func CreatePerson(c *gin.Context) {
     var person models.Person
 
-    // Bind the JSON body to the person struct
     if err := c.ShouldBindJSON(&person); err != nil {
         c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
         return
     }
 
-    // Check if phone number already exists in the database
+    // Check if phone number already exists
     var existingPerson models.Person
     if err := database.DB.Where("phone = ?", person.Phone).First(&existingPerson).Error; err == nil {
-        // If a person with the same phone exists, return an error
         c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number already exists"})
         return
     }
 
-    // Tentukan ID secara manual
-    nextID, err := database.GetNextAvailableID()
-    if err != nil {
-        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to determine next ID"})
-        return
+    // Set default role if not provided
+    if person.RoleID == 0 {
+        var userRole models.Role
+        if err := database.DB.Where("name = ?", "user").First(&userRole).Error; err != nil {
+            c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to assign default role"})
+            return
+        }
+        person.RoleID = userRole.ID
+    } else {
+        // Validate provided role
+        var role models.Role
+        if err := database.DB.First(&role, person.RoleID).Error; err != nil {
+            c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid role ID"})
+            return
+        }
     }
-    person.ID = nextID
 
-    // Bersihkan nilai id_number untuk diisi otomatis
+    // Auto-generate ID number
     person.IDNumber = ""
 
-    // Create the person in the database
     if err := database.DB.Create(&person).Error; err != nil {
         if strings.Contains(err.Error(), "duplicate") {
             c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number or ID number already exists"})
@@ -67,15 +86,13 @@ func CreatePerson(c *gin.Context) {
         return
     }
 
-    // Return success message
     c.JSON(http.StatusCreated, gin.H{"message": "Person created successfully", "data": person})
 }
 
 func UpdatePerson(c *gin.Context) {
-    var person models.Person
     id := c.Param("id")
+    var person models.Person
 
-    // Check if the person exists
     if err := database.DB.First(&person, id).Error; err != nil {
         c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
         return
@@ -87,7 +104,7 @@ func UpdatePerson(c *gin.Context) {
         return
     }
 
-    // Check if the phone number is already in use by someone else
+    // Check if phone number is already used by another person
     var existingPerson models.Person
     result := database.DB.Where("phone = ? AND id != ?", input.Phone, id).First(&existingPerson)
     if result.Error == nil {
@@ -112,10 +129,10 @@ func UpdatePerson(c *gin.Context) {
 }
 
 func DeletePerson(c *gin.Context) {
-	id := c.Param("id")
-	if err := database.DB.Delete(&models.Person{}, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"message": "Person deleted"})
+    id := c.Param("id")
+    if err := database.DB.Delete(&models.Person{}, id).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
+        return
+    }
+    c.JSON(http.StatusOK, gin.H{"message": "Person deleted"})
 }
