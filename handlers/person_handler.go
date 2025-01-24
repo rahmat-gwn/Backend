@@ -5,7 +5,7 @@ import (
     "go-modul/models"
     "net/http"
     "strings"
-
+	"gorm.io/gorm"
     "github.com/gin-gonic/gin"
 )
 
@@ -72,18 +72,43 @@ func CreatePerson(c *gin.Context) {
 }
 
 func UpdatePerson(c *gin.Context) {
-	id := c.Param("id")
-	var person models.Person
-	if err := database.DB.First(&person, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
-		return
-	}
-	if err := c.ShouldBindJSON(&person); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-	database.DB.Save(&person)
-	c.JSON(http.StatusOK, person)
+    var person models.Person
+    id := c.Param("id")
+
+    // Check if the person exists
+    if err := database.DB.First(&person, id).Error; err != nil {
+        c.JSON(http.StatusNotFound, gin.H{"error": "Person not found"})
+        return
+    }
+
+    var input models.Person
+    if err := c.ShouldBindJSON(&input); err != nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+        return
+    }
+
+    // Check if the phone number is already in use by someone else
+    var existingPerson models.Person
+    result := database.DB.Where("phone = ? AND id != ?", input.Phone, id).First(&existingPerson)
+    if result.Error == nil {
+        c.JSON(http.StatusBadRequest, gin.H{"error": "Phone number already exists"})
+        return
+    } else if result.Error != nil && result.Error != gorm.ErrRecordNotFound {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check phone number"})
+        return
+    }
+
+    // Update person details
+    person.Name = input.Name
+    person.Address = input.Address
+    person.Phone = input.Phone
+
+    if err := database.DB.Save(&person).Error; err != nil {
+        c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update person"})
+        return
+    }
+
+    c.JSON(http.StatusOK, gin.H{"message": "Person updated successfully", "data": person})
 }
 
 func DeletePerson(c *gin.Context) {
