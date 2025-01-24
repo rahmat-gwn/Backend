@@ -25,6 +25,6 @@ func main() {
 	r.PUT("/people/:id", handlers.UpdatePerson)
 	r.DELETE("/people/:id", handlers.DeletePerson)
 
-	// Jalankan server
-	r.Run(":8080")
+	// Jalankan server sesuaikan jika 8080 sudah terpakai
+	r.Run(":8081")
 }

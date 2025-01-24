@@ -8,6 +8,7 @@ import (
 	"github.com/joho/godotenv"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
+	"go-modul/models"
 )
 
 var DB *gorm.DB
@@ -57,4 +58,27 @@ func GetDBName() string {
 		log.Fatal("DB_NAME is not set in .env file")
 	}
 	return dbName
+}
+
+func GetNextAvailableID() (int, error) {
+    var ids []int
+    if err := DB.Model(&models.Person{}).Pluck("id", &ids).Error; err != nil {
+        return 0, err
+    }
+
+    for i := 1; ; i++ {
+        if !contains(ids, i) {
+            return i, nil
+        }
+    }
+}
+
+// Fungsi pembantu untuk memeriksa apakah ID ada dalam daftar
+func contains(slice []int, item int) bool {
+    for _, v := range slice {
+        if v == item {
+            return true
+        }
+    }
+    return false
 }
