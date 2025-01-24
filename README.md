@@ -27,6 +27,8 @@ curl -X POST http://localhost:8080/bentuk \
 curl -X GET http://localhost:8080/bentuk
 curl -X DELETE http://localhost:8080/bentuk/1
 
+http://localhost:8080/people
+
 ----------------------------------------------------------------
 # Output: ApI 
 ![alt text]({549954DE-51B0-42AF-AA44-A7D5E2C8930B}.png)
