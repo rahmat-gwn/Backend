@@ -5,25 +5,8 @@ learn back-end
 # installation
 https://go.dev/dl/
 -----chek install----
-go version
-go mod init go-modul
-go get github.com/google/uuid
-go get -u github.com/gin-gonic/gin
-go get github.com/google/uuid
-go get -u gorm.io/gorm
-go get -u gorm.io/driver/sqlite
-go get modernc.org/sqlite
-go get github.com/joho/godotenv
-go get github.com/go-playground/validator/v10
-go get github.com/gin-contrib/limiter
-go get github.com/swaggo/gin-swagger
 go mod tidy
 
-----------------------------------------------------------------
-# Set Api Test Db
-set CGO_ENABLED=1
-set GOOS=windows
-set GOARCH=amd64
 
 ----------------------------------------------------------------
 # run app
