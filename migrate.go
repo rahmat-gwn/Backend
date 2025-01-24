@@ -6,12 +6,12 @@ import (
 )
 
 func main() {
-	// Inisialisasi koneksi database
+	// Inisialisasi database
 	database.InitDatabase()
 
-	// Lakukan migrasi untuk semua model yang dibutuhkan
+	// Migrasi tabel
 	database.Migrate(
 		&models.Person{},
-		&models.Product{}, // Model tambahan
+		&models.Product{},
 	)
 }

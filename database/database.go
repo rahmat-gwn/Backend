@@ -10,18 +10,17 @@ import (
 	"gorm.io/gorm"
 )
 
-// DB adalah variabel global untuk koneksi database
 var DB *gorm.DB
 
-// InitDatabase menginisialisasi koneksi ke database
+// InitDatabase untuk menginisialisasi koneksi ke database
 func InitDatabase() {
-	// Muat konfigurasi dari file .env
+	// Load environment variables
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Warning: .env file not found, loading environment variables from system")
+		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	// Format DSN (Data Source Name)
+	// Build DSN
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -30,27 +29,32 @@ func InitDatabase() {
 		os.Getenv("DB_NAME"),
 	)
 
-	// Hubungkan ke database
+	// Open database
 	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatalf("Failed to connect to database: %v", err)
 	}
 
-	// Assign koneksi ke variabel global
 	DB = db
 	fmt.Println("Database connection established")
 }
 
-// Migrate menjalankan migrasi database
+// Migrate untuk melakukan migrasi model tanpa membuat tabel yang sama
 func Migrate(models ...interface{}) {
-	if DB == nil {
-		log.Fatalf("Database not initialized. Call InitDatabase() first.")
+	for _, model := range models {
+		// Pengecekan jika model sudah ada, jangan buat lagi
+		if err := DB.AutoMigrate(model); err != nil {
+			log.Printf("Failed to migrate model %v: %v", model, err)
+		} else {
+			fmt.Printf("Migrated model %v successfully\n", model)
+		}
 	}
+}
 
-	err := DB.AutoMigrate(models...)
-	if err != nil {
-		log.Fatalf("Failed to migrate database: %v", err)
+func GetDBName() string {
+	dbName := os.Getenv("DB_NAME")
+	if dbName == "" {
+		log.Fatal("DB_NAME is not set in .env file")
 	}
-
-	fmt.Println("Database migration completed successfully")
+	return dbName
 }

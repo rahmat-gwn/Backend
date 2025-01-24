@@ -1,8 +1,10 @@
 package models
 
 type Person struct {
-	ID        uint   `gorm:"primaryKey" json:"id"`
-	Name      string `json:"name"`
-	Address   string `json:"address"`
-	Phone     string `json:"phone"`
+	ID          uint   `gorm:"primaryKey"`
+	Name        string `gorm:"size:255;not null"`
+	Address     string `gorm:"size:255"`
+	Phone       string `gorm:"size:50"`
+	IDNumber    string `gorm:"size:50;uniqueIndex"`
+	PhoneNumber string `gorm:"size:50"`
 }
