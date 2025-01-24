@@ -7,6 +7,10 @@ https://go.dev/dl/
 -----chek install----
 go mod tidy
 
+# Migrate
+creat db rest_api.sql
+go run migrate.go
+go run seed.go
 
 ----------------------------------------------------------------
 # run app
