@@ -2,8 +2,8 @@ package main
 
 import (
 	"go-modul/database"
-    "go-modul/handlers"
-    "go-modul/models"
+	"go-modul/models"
+	"go-modul/routes"
 
 	"github.com/gin-gonic/gin"
 )
@@ -13,18 +13,18 @@ func main() {
 	database.InitDatabase()
 
 	// Migrasi model ke database
-	database.DB.AutoMigrate(&models.Person{})
+	if err := database.DB.AutoMigrate(&models.Person{}); err != nil {
+		panic("Failed to migrate database: " + err.Error())
+	}
 
 	// Setup router
 	r := gin.Default()
 
-	// Rute API
-	r.GET("/people", handlers.GetPeople)
-	r.GET("/people/:id", handlers.GetPersonByID)
-	r.POST("/people", handlers.CreatePerson)
-	r.PUT("/people/:id", handlers.UpdatePerson)
-	r.DELETE("/people/:id", handlers.DeletePerson)
+	// Registrasi rute melalui modul routes
+	routes.RegisterRoutes(r)
 
-	// Jalankan server sesuaikan jika 8080 sudah terpakai
-	r.Run(":8081")
+	// Jalankan server (ubah port jika 8081 sudah terpakai)
+	if err := r.Run(":8081"); err != nil {
+		panic("Failed to start server: " + err.Error())
+	}
 }
